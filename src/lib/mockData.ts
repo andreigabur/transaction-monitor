@@ -78,8 +78,8 @@ export class TransactionEmulator {
   generateHistoricalSequence(startMs: number, endMs: number, problemProcessor?: ProcessorId): Transaction[] {
       const txs: Transaction[] = [];
       const windowMs = endMs - startMs;
-      // Approx 3000 transactions for performance 
-      const count = 3000;
+      // Live volume is 15 tx / 500ms = 30 tx / sec. Math matching live density, capped to safely handle 7-day ranges
+      const count = Math.min(Math.floor((windowMs / 1000) * 30), 100000);
       const interval = windowMs / count;
       
       const midPoint = startMs + (windowMs / 2); // Fails exactly halfway through

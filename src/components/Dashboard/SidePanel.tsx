@@ -76,6 +76,23 @@ export function SidePanel({ isPlaybackMode, setIsPlaybackMode }: { isPlaybackMod
           />
         </div>
       </div>
+      <div className="space-y-5 pt-6 border-t border-panel-border">
+        <div className="flex items-center gap-2 text-foreground/80 mb-2">
+          <Activity size={16} className="text-accent" />
+          <h3 className="font-semibold text-sm uppercase tracking-wider">Traffic Insights</h3>
+        </div>
+        
+        <p className="text-xs text-foreground/50 mb-4">
+          Select specific payment methods or regions to automatically recalculate performance.
+        </p>
+
+        <div className="w-full bg-panel-border/30 rounded-lg border border-panel-border p-4">
+          <p className="text-[10px] text-foreground/40 mb-1.5 uppercase font-bold tracking-wider">Pro Tip</p>
+          <p className="text-xs text-foreground/70 leading-relaxed">
+            Hover over a processor card and click <span className="text-status-failing font-bold">"Simulate Outage"</span> to inject an anomaly into the system stream.
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

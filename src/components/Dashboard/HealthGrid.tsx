@@ -4,22 +4,56 @@ import React from 'react';
 import { useTransactions } from '../../context/TransactionContext';
 import { cn } from '../../lib/utils';
 import { ProcessorId } from '../../lib/types';
-import { Activity, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
+import { Activity, AlertTriangle, CheckCircle2, XCircle, AlertOctagon } from 'lucide-react';
 
 export function HealthGrid() {
-  const { stats, toggleAnomaly, resetAnomaly, activeAnomalies, alertThresholds } = useTransactions();
+  const { stats, toggleAnomaly, activeAnomalies, alertThresholds, historicalTransactions } = useTransactions();
+  const isPlaybackMode = historicalTransactions !== null;
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-bold text-foreground">Processor Health</h2>
-        <button 
-          onClick={resetAnomaly}
-          className="text-sm px-3 py-1.5 bg-panel-border hover:bg-panel-border/80 rounded-md transition-colors text-foreground"
-        >
-          Reset All Status
-        </button>
       </div>
+
+      {stats.filter(s => s.alerts.authRateBreached || s.alerts.idleBreached).length > 0 && (
+        <div className="w-full bg-panel border-2 border-status-failing/30 rounded-xl overflow-hidden shadow-[0_4px_30px_rgba(239,68,68,0.1)] mb-2">
+          <div className="w-full p-5 bg-status-failing/5 flex flex-col md:flex-row items-center gap-6">
+              <div className="flex flex-col items-center justify-center shrink-0">
+                <div className="bg-status-failing/20 p-2.5 rounded-full mb-1.5">
+                  <AlertOctagon size={28} className="text-status-failing animate-pulse" />
+                </div>
+                <h3 className="text-base font-bold text-status-failing">Critical Alerts</h3>
+                <p className="text-foreground/40 text-[10px] uppercase tracking-widest font-bold leading-tight">Incidents</p>
+              </div>
+              
+              <div className="flex-1 w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                {stats.filter(s => s.alerts.authRateBreached || s.alerts.idleBreached).map(p => (
+                  <div key={p.id} className="bg-panel/40 border border-panel-border p-2.5 rounded-lg text-left hover:border-status-failing/40 transition-colors">
+                    <div className="flex justify-between items-center mb-1 pb-1 border-b border-panel-border">
+                      <span className="font-bold text-xs text-foreground">{p.name}</span>
+                      <div className="w-1.5 h-1.5 rounded-full bg-status-failing animate-ping" />
+                    </div>
+                    <div className="space-y-1">
+                      {p.alerts.authRateBreached && (
+                        <p className="text-[10px] text-status-failing font-extrabold uppercase flex items-center gap-1.5 leading-none">
+                          <span className="w-1 h-1 rounded-full bg-status-failing flex-shrink-0" />
+                          Auth Rate &lt; {(alertThresholds.minAuthRate * 100).toFixed(0)}%
+                        </p>
+                      )}
+                      {p.alerts.idleBreached && (
+                        <p className="text-[10px] text-status-degraded font-extrabold uppercase flex items-center gap-1.5 leading-none">
+                          <span className="w-1 h-1 rounded-full bg-status-degraded flex-shrink-0" />
+                          Idle &gt; {alertThresholds.maxIdleMinutes}m
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+          </div>
+        </div>
+      )}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((processor) => {
           const isHealthy = processor.status === 'healthy';
@@ -46,18 +80,7 @@ export function HealthGrid() {
                   )} />
               </div>
 
-              <div className="absolute top-3 right-3 flex flex-col gap-1.5 items-end z-10 pointer-events-none">
-                {processor.alerts.authRateBreached && (
-                  <span className="bg-status-failing text-white text-[10px] uppercase font-bold px-2 py-1 rounded shadow-lg shadow-status-failing/50 animate-pulse border border-white/20">
-                    Alert: Auth &lt; {(alertThresholds.minAuthRate * 100).toFixed(0)}%
-                  </span>
-                )}
-                {processor.alerts.idleBreached && (
-                  <span className="bg-status-degraded text-white text-[10px] uppercase font-bold px-2 py-1 rounded shadow-lg shadow-status-degraded/50 animate-pulse border border-white/20">
-                    Alert: Idle &gt; {alertThresholds.maxIdleMinutes}m
-                  </span>
-                )}
-              </div>
+
               
               <div className="flex justify-between items-start mb-4 mt-1">
                 <div>
@@ -109,18 +132,20 @@ export function HealthGrid() {
                     <Activity size={14}/> Live Data
                   </span>
                 )}
-                <button 
-                  onClick={() => toggleAnomaly(processor.id as ProcessorId)}
-                  className={cn(
-                    "text-xs px-3 py-1.5 rounded-md transition-colors font-medium border flex-shrink-0",
-                    activeAnomalies.includes(processor.id as ProcessorId) 
-                      ? "bg-panel-border text-foreground hover:bg-panel-border/80 border-panel-border/50" 
-                      : "bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white border-red-500/20"
-                  )}
-                  title="Toggle Failure Simulation"
-                >
-                  {activeAnomalies.includes(processor.id as ProcessorId) ? "Turn off outage" : "Simulate Outage"}
-                </button>
+                {!isPlaybackMode && (
+                  <button 
+                    onClick={() => toggleAnomaly(processor.id as ProcessorId)}
+                    className={cn(
+                      "text-xs px-3 py-1.5 rounded-md transition-colors font-medium border flex-shrink-0",
+                      activeAnomalies.includes(processor.id as ProcessorId) 
+                        ? "bg-panel-border text-foreground hover:bg-panel-border/80 border-panel-border/50" 
+                        : "bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white border-red-500/20"
+                    )}
+                    title="Toggle Failure Simulation"
+                  >
+                    {activeAnomalies.includes(processor.id as ProcessorId) ? "Turn off outage" : "Simulate Outage"}
+                  </button>
+                )}
               </div>
             </div>
           );

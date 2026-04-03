@@ -10,8 +10,8 @@ import { SidePanel } from '@/components/Dashboard/SidePanel';
 import { Activity, AlertOctagon } from 'lucide-react';
 
 function DashboardContent() {
-  const { stats } = useTransactions();
-  const failingProcessors = stats.filter(s => s.status === 'failing');
+  const { stats, alertThresholds } = useTransactions();
+  const alertProcessors = stats.filter(s => s.alerts.authRateBreached || s.alerts.idleBreached);
   const [isPlaybackMode, setIsPlaybackMode] = useState(false);
 
   return (
@@ -57,7 +57,7 @@ function DashboardContent() {
                <span className="text-xs font-medium text-status-healthy">Operational</span>
             </div>
           </header>
-
+          
           {isPlaybackMode && (
             <div className="mb-4">
               <PlaybackScrubber onClose={() => setIsPlaybackMode(false)} />
@@ -67,37 +67,8 @@ function DashboardContent() {
           <Controls />
           <HealthGrid />
           
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2">
-              <TimeSeriesChart />
-            </div>
-            <div className="bg-panel border border-panel-border rounded-xl flex flex-col items-center justify-center text-center overflow-hidden">
-              {failingProcessors.length > 0 ? (
-                <div className="w-full h-full p-6 bg-status-failing/10 flex flex-col items-center justify-center">
-                    <AlertOctagon size={48} className="text-status-failing mb-4 animate-pulse" />
-                    <h3 className="text-xl font-bold text-status-failing mb-2">Critical Alerts</h3>
-                    <p className="text-status-failing/80 text-sm mb-4">
-                      {failingProcessors.length} processor(s) experiencing severe degradation and massive drops in authorization rates.
-                    </p>
-                    <div className="flex flex-wrap justify-center gap-2">
-                      {failingProcessors.map(p => (
-                        <span key={p.id} className="px-3 py-1 bg-status-failing text-white rounded-full text-xs font-bold shadow-lg">
-                          {p.name}
-                        </span>
-                      ))}
-                    </div>
-                </div>
-              ) : (
-                <div className="p-6">
-                  <h3 className="text-lg font-bold text-foreground mb-4">Traffic Insights</h3>
-                  <p className="text-foreground/50 text-sm mb-6">Select specific payment methods or regions to automatically recalculate performance.</p>
-                  <div className="w-full bg-background rounded-lg border border-panel-border p-4 text-left">
-                    <p className="text-xs text-foreground/40 mb-2 uppercase font-semibold">Tip</p>
-                    <p className="text-sm text-foreground/80">Hover over a processor card and click <span className="text-status-failing font-semibold">"Simulate Outage"</span> to inject an anomaly into the system stream.</p>
-                  </div>
-                </div>
-              )}
-            </div>
+          <div className="w-full">
+            <TimeSeriesChart />
           </div>
         </div>
       </main>

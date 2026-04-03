@@ -14,7 +14,6 @@ interface TransactionContextType {
   setMethodFilter: (m: PaymentMethod | "ALL") => void;
   activeAnomalies: ProcessorId[];
   toggleAnomaly: (processor: ProcessorId) => void;
-  resetAnomaly: () => void;
   playbackTime: number | null;
   setPlaybackTime: React.Dispatch<React.SetStateAction<number | null>>;
   loadHistoricalData: (startMs: number, endMs: number) => void;
@@ -27,6 +26,7 @@ interface TransactionContextType {
 const TransactionContext = createContext<TransactionContextType | null>(null);
 
 const MAX_WINDOW_MS = 6 * 60 * 60 * 1000; // 6 hours locally buffered
+const STATS_WINDOW_MS = 1 * 60 * 1000; // 1 minute status rolling window
 const BATCH_INTERVAL_MS = 500; // 2 updates per second for real-time feel
 const BATCH_SIZE = 15;
 
@@ -79,8 +79,12 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
         return acc;
     }, {} as Record<ProcessorId, { total: number, approved: number, lastTxTime: number }>);
 
+    const currentTime = playbackTime || Date.now();
+    const statsWindowStart = currentTime - STATS_WINDOW_MS;
+
     filteredTransactions.forEach(t => {
-      if (statsMap[t.processor]) {
+      // Only include transactions within the 1-minute sliding window relative to 'currentTime'
+      if (t.timestamp >= statsWindowStart && t.timestamp <= currentTime && statsMap[t.processor]) {
           statsMap[t.processor].total++;
           if (t.status === "approved") {
               statsMap[t.processor].approved++;
@@ -90,8 +94,6 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
           }
       }
     });
-
-    const currentTime = playbackTime || Date.now();
 
     return PROCESSORS.map(p => {
         const data = statsMap[p];
@@ -132,11 +134,6 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
     });
   };
 
-  const resetAnomaly = () => {
-    emulatorRef.current.resetAnomaly();
-    setActiveAnomalies([]);
-  };
-
   const loadHistoricalData = (startMs: number, endMs: number) => {
     // Inject anomaly on "stripe" processor perfectly in the middle of our custom range
     const txs = emulatorRef.current.generateHistoricalSequence(startMs, endMs, "stripe");
@@ -160,7 +157,6 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
       setMethodFilter,
       activeAnomalies,
       toggleAnomaly,
-      resetAnomaly,
       playbackTime,
       setPlaybackTime,
       loadHistoricalData,
