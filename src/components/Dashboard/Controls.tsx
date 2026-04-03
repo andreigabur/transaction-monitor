@@ -11,10 +11,11 @@ export function Controls() {
 
   return (
     <div className="flex flex-col md:flex-row gap-4 p-4 bg-panel border border-panel-border rounded-xl">
-      <div className="flex items-center gap-2 mr-4">
-        <Filter size={18} className="text-accent" />
-        <span className="font-semibold text-foreground">Traffic Filters</span>
-      </div>
+      <div className="flex flex-wrap md:flex-nowrap items-center w-full gap-4">
+          <div className="flex items-center gap-2 mr-4">
+            <Filter size={18} className="text-accent" />
+            <span className="font-semibold text-foreground whitespace-nowrap">Traffic Filters</span>
+          </div>
 
       <div className="flex items-center gap-3">
         <Globe size={16} className="text-foreground/50" />
@@ -42,6 +43,8 @@ export function Controls() {
             </option>
           ))}
         </select>
+      </div>
+      
       </div>
     </div>
   );

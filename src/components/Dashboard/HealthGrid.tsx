@@ -7,7 +7,7 @@ import { ProcessorId } from '../../lib/types';
 import { Activity, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
 
 export function HealthGrid() {
-  const { stats, toggleAnomaly, resetAnomaly, activeAnomalies } = useTransactions();
+  const { stats, toggleAnomaly, resetAnomaly, activeAnomalies, alertThresholds } = useTransactions();
 
   return (
     <div className="flex flex-col gap-4">
@@ -37,13 +37,26 @@ export function HealthGrid() {
                 "hover:-translate-y-1 hover:shadow-xl"
               )}
             >
-              <div className="absolute top-0 left-0 w-full h-1">
+              <div className="absolute top-0 left-0 w-full h-1 z-0">
                   <div className={cn(
                       "h-full w-full transition-colors duration-500",
                       isHealthy && "bg-status-healthy",
                       isDegraded && "bg-status-degraded",
                       isFailing && "bg-status-failing"
                   )} />
+              </div>
+
+              <div className="absolute top-3 right-3 flex flex-col gap-1.5 items-end z-10 pointer-events-none">
+                {processor.alerts.authRateBreached && (
+                  <span className="bg-status-failing text-white text-[10px] uppercase font-bold px-2 py-1 rounded shadow-lg shadow-status-failing/50 animate-pulse border border-white/20">
+                    Alert: Auth &lt; {(alertThresholds.minAuthRate * 100).toFixed(0)}%
+                  </span>
+                )}
+                {processor.alerts.idleBreached && (
+                  <span className="bg-status-degraded text-white text-[10px] uppercase font-bold px-2 py-1 rounded shadow-lg shadow-status-degraded/50 animate-pulse border border-white/20">
+                    Alert: Idle &gt; {alertThresholds.maxIdleMinutes}m
+                  </span>
+                )}
               </div>
               
               <div className="flex justify-between items-start mb-4 mt-1">

@@ -19,4 +19,8 @@ export interface ProcessorStats {
   authRate: number;
   volume: number;
   status: ProcessorStatus;
+  alerts: {
+    authRateBreached: boolean;
+    idleBreached: boolean;
+  };
 }

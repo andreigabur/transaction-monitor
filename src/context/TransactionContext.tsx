@@ -20,6 +20,8 @@ interface TransactionContextType {
   loadHistoricalData: (startMs: number, endMs: number) => void;
   clearHistoricalData: () => void;
   historicalTransactions: Transaction[] | null;
+  alertThresholds: { minAuthRate: number, maxIdleMinutes: number };
+  setAlertThresholds: React.Dispatch<React.SetStateAction<{ minAuthRate: number, maxIdleMinutes: number }>>;
 }
 
 const TransactionContext = createContext<TransactionContextType | null>(null);
@@ -35,6 +37,7 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
   const [activeAnomalies, setActiveAnomalies] = useState<ProcessorId[]>([]);
   const [playbackTime, setPlaybackTime] = useState<number | null>(null);
   const [historicalTransactions, setHistoricalTransactions] = useState<Transaction[] | null>(null);
+  const [alertThresholds, setAlertThresholds] = useState({ minAuthRate: 0.85, maxIdleMinutes: 10 });
   
   const emulatorRef = useRef(new TransactionEmulator());
 
@@ -71,10 +74,10 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
   }, [effectiveTransactions, countryFilter, methodFilter]);
 
   const stats = useMemo(() => {
-    const statsMap: Record<ProcessorId, { total: number, approved: number }> = PROCESSORS.reduce((acc, p) => {
-        acc[p] = { total: 0, approved: 0 };
+    const statsMap: Record<ProcessorId, { total: number, approved: number, lastTxTime: number }> = PROCESSORS.reduce((acc, p) => {
+        acc[p] = { total: 0, approved: 0, lastTxTime: 0 };
         return acc;
-    }, {} as Record<ProcessorId, { total: number, approved: number }>);
+    }, {} as Record<ProcessorId, { total: number, approved: number, lastTxTime: number }>);
 
     filteredTransactions.forEach(t => {
       if (statsMap[t.processor]) {
@@ -82,8 +85,13 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
           if (t.status === "approved") {
               statsMap[t.processor].approved++;
           }
+          if (t.timestamp > statsMap[t.processor].lastTxTime) {
+              statsMap[t.processor].lastTxTime = t.timestamp;
+          }
       }
     });
+
+    const currentTime = playbackTime || Date.now();
 
     return PROCESSORS.map(p => {
         const data = statsMap[p];
@@ -94,15 +102,23 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
         if (authRate > 0 && authRate < 0.6) status = "failing";
         else if (authRate > 0 && authRate < 0.85) status = "degraded";
 
+        const idleTimeMs = currentTime - data.lastTxTime;
+        const isIdleBreached = (data.lastTxTime === 0 && data.total === 0) || (idleTimeMs > alertThresholds.maxIdleMinutes * 60 * 1000);
+        const isAuthBreached = data.total > 0 && authRate < alertThresholds.minAuthRate;
+
         return {
             id: p,
             name: PROCESSOR_CONFIG[p].name,
             authRate,
             volume: data.total,
-            status: data.total === 0 ? "healthy" : status // "healthy" if no volume, or could be "idle"
+            status: data.total === 0 ? "healthy" : status, // "healthy" if no volume, or could be "idle"
+            alerts: {
+                authRateBreached: isAuthBreached,
+                idleBreached: isIdleBreached
+            }
         };
     });
-  }, [filteredTransactions]);
+  }, [filteredTransactions, playbackTime, alertThresholds]);
 
   const toggleAnomaly = (p: ProcessorId) => {
     setActiveAnomalies(prev => {
@@ -149,7 +165,9 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
       setPlaybackTime,
       loadHistoricalData,
       clearHistoricalData,
-      historicalTransactions
+      historicalTransactions,
+      alertThresholds,
+      setAlertThresholds
     }}>
       {children}
     </TransactionContext.Provider>
