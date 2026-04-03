@@ -16,9 +16,10 @@ export function PlaybackScrubber({ onClose }: { onClose: () => void }) {
     
     const [isPlaying, setIsPlaying] = useState(false);
     
-    // Default dates for the picker (e.g., March 15th as requested, or just "yesterday" 2PM to 8PM)
-    const [startDate, setStartDate] = useState("2024-03-15T14:00");
-    const [endDate, setEndDate] = useState("2024-03-15T20:00");
+    const [startDay, setStartDay] = useState("2024-03-15");
+    const [startTime, setStartTime] = useState("14:00");
+    const [endDay, setEndDay] = useState("2024-03-15");
+    const [endTime, setEndTime] = useState("20:00");
 
     // We need the oldest and newest items in the buffer, falling back to dates if no historical
     const oldestTimestamp = historicalTransactions && historicalTransactions.length > 0 
@@ -62,8 +63,8 @@ export function PlaybackScrubber({ onClose }: { onClose: () => void }) {
     };
 
     const handleLoad = () => {
-        const startMs = new Date(startDate).getTime();
-        const endMs = new Date(endDate).getTime();
+        const startMs = new Date(`${startDay}T${startTime}`).getTime();
+        const endMs = new Date(`${endDay}T${endTime}`).getTime();
         if (startMs >= endMs) return window.alert("Start time must be before End time.");
         if (endMs - startMs > 1000 * 60 * 60 * 24 * 7) return window.alert("Max custom range is 7 days.");
         
@@ -82,27 +83,43 @@ export function PlaybackScrubber({ onClose }: { onClose: () => void }) {
                     </button>
                 </div>
                 
-                <div className="flex flex-col md:flex-row items-end gap-4">
+                <div className="flex flex-col md:flex-row items-end gap-4 w-full">
                     <div className="flex flex-col flex-1 w-full gap-1">
                         <label className="text-xs text-foreground/50 font-semibold uppercase tracking-wide">Start Date & Time</label>
-                        <input 
-                            type="datetime-local" 
-                            className="bg-background border border-panel-border text-foreground text-sm rounded-lg focus:ring-accent focus:border-accent block w-full p-2.5 outline-none transition-all"
-                            value={startDate}
-                            onChange={(e) => setStartDate(e.target.value)}
-                        />
+                        <div className="flex gap-2 w-full">
+                            <input 
+                                type="date" 
+                                className="bg-background border border-panel-border text-foreground text-sm rounded-lg focus:ring-accent focus:border-accent block w-full p-2.5 outline-none transition-all"
+                                value={startDay}
+                                onChange={(e) => setStartDay(e.target.value)}
+                            />
+                            <input 
+                                type="time" 
+                                className="bg-background border border-panel-border text-foreground text-sm rounded-lg focus:ring-accent focus:border-accent block w-32 p-2.5 outline-none transition-all"
+                                value={startTime}
+                                onChange={(e) => setStartTime(e.target.value)}
+                            />
+                        </div>
                     </div>
                     <div className="hidden md:flex items-center text-foreground/50 mb-2">
                         <ArrowRight size={20} />
                     </div>
                     <div className="flex flex-col flex-1 w-full gap-1">
                         <label className="text-xs text-foreground/50 font-semibold uppercase tracking-wide">End Date & Time</label>
-                        <input 
-                            type="datetime-local" 
-                            className="bg-background border border-panel-border text-foreground text-sm rounded-lg focus:ring-accent focus:border-accent block w-full p-2.5 outline-none transition-all"
-                            value={endDate}
-                            onChange={(e) => setEndDate(e.target.value)}
-                        />
+                        <div className="flex gap-2 w-full">
+                            <input 
+                                type="date" 
+                                className="bg-background border border-panel-border text-foreground text-sm rounded-lg focus:ring-accent focus:border-accent block w-full p-2.5 outline-none transition-all"
+                                value={endDay}
+                                onChange={(e) => setEndDay(e.target.value)}
+                            />
+                            <input 
+                                type="time" 
+                                className="bg-background border border-panel-border text-foreground text-sm rounded-lg focus:ring-accent focus:border-accent block w-32 p-2.5 outline-none transition-all"
+                                value={endTime}
+                                onChange={(e) => setEndTime(e.target.value)}
+                            />
+                        </div>
                     </div>
                     <button 
                         onClick={handleLoad}
