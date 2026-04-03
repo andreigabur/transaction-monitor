@@ -4,7 +4,17 @@ import { useTransactions } from '@/context/TransactionContext';
 import { Settings, History, BellRing, Activity } from 'lucide-react';
 
 export function SidePanel({ isPlaybackMode, setIsPlaybackMode }: { isPlaybackMode: boolean, setIsPlaybackMode: (v: boolean) => void }) {
-  const { alertThresholds, setAlertThresholds } = useTransactions();
+  const { alertThresholds, setAlertThresholds, statsWindowMs, setStatsWindowMs } = useTransactions();
+
+  const windowOptions = [
+    { label: '10s', value: 10000 },
+    { label: '30s', value: 30000 },
+    { label: '1m', value: 60000 },
+    { label: '5m', value: 300000 },
+    { label: '15m', value: 900000 },
+  ];
+
+  const currentWindowIdx = windowOptions.findIndex(opt => opt.value === statsWindowMs);
 
   return (
     <div className="space-y-8 flex flex-col">
@@ -74,6 +84,24 @@ export function SidePanel({ isPlaybackMode, setIsPlaybackMode }: { isPlaybackMod
             onChange={e => setAlertThresholds(prev => ({...prev, maxIdleMinutes: parseInt(e.target.value)}))}
             className="w-full accent-status-degraded cursor-pointer outline-none"
           />
+        </div>
+
+        <div className="flex flex-col gap-2 pt-2">
+          <div className="flex justify-between items-center mb-1">
+              <label className="text-xs tracking-wider text-foreground/70 font-bold">Calculation Window</label>
+              <span className="text-xs font-mono text-accent font-bold">{windowOptions[currentWindowIdx]?.label || '1m'}</span>
+          </div>
+          <input 
+            type="range" min="0" max="4" step="1" 
+            value={currentWindowIdx !== -1 ? currentWindowIdx : 3}
+            onChange={e => setStatsWindowMs(windowOptions[parseInt(e.target.value)].value)}
+            className="w-full accent-accent cursor-pointer outline-none"
+          />
+          <div className="flex justify-between px-1 mt-0.5">
+              {windowOptions.map((opt, i) => (
+                  <span key={i} className="text-[8px] text-foreground/30 font-bold">{opt.label}</span>
+              ))}
+          </div>
         </div>
       </div>
       <div className="space-y-5 pt-6 border-t border-panel-border">

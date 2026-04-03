@@ -21,12 +21,13 @@ interface TransactionContextType {
   historicalTransactions: Transaction[] | null;
   alertThresholds: { minAuthRate: number, maxIdleMinutes: number };
   setAlertThresholds: React.Dispatch<React.SetStateAction<{ minAuthRate: number, maxIdleMinutes: number }>>;
+  statsWindowMs: number;
+  setStatsWindowMs: (ms: number) => void;
 }
 
 const TransactionContext = createContext<TransactionContextType | null>(null);
 
 const MAX_WINDOW_MS = 6 * 60 * 60 * 1000; // 6 hours locally buffered
-const STATS_WINDOW_MS = 1 * 60 * 1000; // 1 minute status rolling window
 const BATCH_INTERVAL_MS = 500; // 2 updates per second for real-time feel
 const BATCH_SIZE = 15;
 
@@ -38,6 +39,7 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
   const [playbackTime, setPlaybackTime] = useState<number | null>(null);
   const [historicalTransactions, setHistoricalTransactions] = useState<Transaction[] | null>(null);
   const [alertThresholds, setAlertThresholds] = useState({ minAuthRate: 0.85, maxIdleMinutes: 10 });
+  const [statsWindowMs, setStatsWindowMs] = useState(60 * 1000); // default 1m
   
   const emulatorRef = useRef(new TransactionEmulator());
 
@@ -80,10 +82,10 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
     }, {} as Record<ProcessorId, { total: number, approved: number, lastTxTime: number }>);
 
     const currentTime = playbackTime || Date.now();
-    const statsWindowStart = currentTime - STATS_WINDOW_MS;
+    const statsWindowStart = currentTime - statsWindowMs;
 
     filteredTransactions.forEach(t => {
-      // Only include transactions within the 1-minute sliding window relative to 'currentTime'
+      // Only include transactions within the dynamic sliding window relative to 'currentTime'
       if (t.timestamp >= statsWindowStart && t.timestamp <= currentTime && statsMap[t.processor]) {
           statsMap[t.processor].total++;
           if (t.status === "approved") {
@@ -163,7 +165,9 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
       clearHistoricalData,
       historicalTransactions,
       alertThresholds,
-      setAlertThresholds
+      setAlertThresholds,
+      statsWindowMs,
+      setStatsWindowMs
     }}>
       {children}
     </TransactionContext.Provider>
